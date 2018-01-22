@@ -52,11 +52,7 @@ class PolicyBrain:
         return np.sum(self.model.rewards)
 
     def finish_episode(self):
-        R = 0
-        rewards = []
-        for r in self.model.rewards[::-1]:
-            R = r + gamma * R
-            rewards.insert(0, R)
+        rewards = self.discount_rewards(self.model.rewards)
         rewards = torch.Tensor(rewards)
         rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
         self.optimizer.zero_grad()
@@ -65,6 +61,14 @@ class PolicyBrain:
         self.optimizer.step()
         del self.model.rewards[:]
         del self.model.saved_actions[:]
+
+    def discount_rewards(self, model_rewards):
+        running_add = 0
+        discounted_rewards = []
+        for r in model_rewards[::-1]:
+            running_add = r + gamma * running_add
+            discounted_rewards.insert(0, running_add)
+        return discounted_rewards
 
     def compute_loss(self, rewards):
         policy_losses = []
