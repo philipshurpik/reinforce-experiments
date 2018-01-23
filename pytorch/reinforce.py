@@ -10,7 +10,7 @@ from torch.distributions import Categorical
 from collections import namedtuple
 
 SavedAction = namedtuple('SavedAction', ['log_prob'])
-n_hidden = 128
+n_hidden = 64
 gamma = 0.99
 
 

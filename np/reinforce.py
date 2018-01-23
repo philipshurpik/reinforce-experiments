@@ -3,17 +3,16 @@
 import numpy as np
 
 gamma = 0.99
-n_hidden = 128
-learning_rate = 1e-3
+n_hidden = 64
+learning_rate = 3e-3
 decay_rate = 0.99
 
 
 class Policy:
     def __init__(self, n_states, n_actions):
-        n_actions_1 = 1
         self.model = {
             'W1': np.random.randn(n_hidden, n_states) / np.sqrt(n_states),
-            'W2': np.random.randn(n_hidden, n_actions_1) / np.sqrt(n_actions_1)
+            'W2': np.random.randn(n_hidden, n_actions) / np.sqrt(n_actions)
         }
         # update buffers that add up gradients over a batch
         self.grad_buffer = {k: np.zeros_like(v) for k, v in self.model.items()}
@@ -21,8 +20,10 @@ class Policy:
         self.rmsprop_cache = {k: np.zeros_like(v) for k, v in self.model.items()}
         self.rewards = []
 
-    @staticmethod  # sigmoid "squashing" function to interval [0,1]
-    def sigmoid(z): return 1.0 / (1.0 + np.exp(-z))
+    @staticmethod
+    def softmax(x):
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum(axis=0)
 
     @staticmethod
     def relu(z): return np.maximum(0, z)
@@ -30,10 +31,9 @@ class Policy:
     def forward(self, x):
         z1 = np.dot(self.model['W1'], x)
         a1 = Policy.relu(z1)
-        z2 = np.dot(self.model['W2'].T, a1)
-        a_prob = Policy.sigmoid(z2)
-        #return p/np.sum(p), h     # return probability of taking action 2, and hidden state
-        return a_prob, a1     # return probability of taking action 2, and hidden state
+        z2 = np.dot(a1, self.model['W2'])
+        a_prob = Policy.softmax(z2)
+        return a_prob, a1, z2   # return probability of taking actions, and hidden state
 
     def backward(self, x_cache, a1_cache, dZ2):
         """ backward pass. (a1_cache is array of intermediate hidden states) """
@@ -48,25 +48,21 @@ class ReinforceBrain:
     def __init__(self, seed, n_states, n_actions):
         np.random.seed(seed)
         self.model = self.make_model(n_states, n_actions)
+        self.n_actions = n_actions
         self.x_cache, self.a1_cache, self.dlogprobs = [], [], []
 
     def make_model(self, n_states, n_actions):
         return Policy(n_states, n_actions)
 
     def select_action(self, state):
-        aprob, a1 = self.model.forward(state)
-        probs = [1 - aprob[0], aprob[0]]
-        action = np.random.choice(2, p=probs)
-        # # probs = [1 - aprob[0][0], aprob[0][0]]
-        # action = np.random.choice(2, p=aprob.flatten())
-        #
-        # log_probs_diff = aprob.flatten()
-        # log_probs_diff[action] = action - log_probs_diff[action]
+        aprob, a1, z2 = self.model.forward(state)
+        action = np.random.choice(self.n_actions, p=aprob)
+        y = np.zeros_like(aprob)
+        y[action] = 1
 
         self.x_cache.append(state)  # state
         self.a1_cache.append(a1)  # hidden state
-        self.dlogprobs.append(action - aprob)  # dZ2  grad that encourages the action that was taken to be taken
-        # self.dlogprobs.append(log_probs_diff)  # grad that encourages the action that was taken to be taken
+        self.dlogprobs.append(y - aprob)  # grad that encourages the action that was taken to be taken
         return action
 
     def add_step_reward(self, reward):
