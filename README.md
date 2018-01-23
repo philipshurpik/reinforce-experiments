@@ -8,6 +8,7 @@ PyTorch:
 
 Numpy:
  - based on Awesome Andrej Karpathy example: https://gist.github.com/karpathy/a4166c7fe253700972fcbc77e4ea32c5
+ - code was rewritten to make it simpler and to make it similar to pytorch examples
  - now works with different envs
  - works with different amount of actions - implemented softmax instead of sigmoid
  - actor critic version... in progress
