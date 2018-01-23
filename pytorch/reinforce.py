@@ -10,14 +10,15 @@ from torch.distributions import Categorical
 from collections import namedtuple
 
 SavedAction = namedtuple('SavedAction', ['log_prob'])
+n_hidden = 128
 gamma = 0.99
 
 
 class Policy(nn.Module):
     def __init__(self, n_states, n_actions):
         super(Policy, self).__init__()
-        self.hidden1 = nn.Linear(n_states, 128)
-        self.action_head = nn.Linear(128, n_actions)
+        self.hidden1 = nn.Linear(n_states, n_hidden)
+        self.action_head = nn.Linear(n_hidden, n_actions)
 
         self.saved_actions = []
         self.rewards = []

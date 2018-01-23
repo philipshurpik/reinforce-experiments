@@ -10,13 +10,14 @@ from collections import namedtuple
 from pytorch.reinforce import Policy, ReinforceBrain
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
+n_hidden = 128
 gamma = 0.99
 
 
 class PolicyA2C(Policy):
     def __init__(self, n_states, n_actions):
         super(PolicyA2C, self).__init__(n_states, n_actions)
-        self.value_head = nn.Linear(128, 1)
+        self.value_head = nn.Linear(n_hidden, 1)
 
     def forward(self, x):
         x = F.relu(self.hidden1(x))
