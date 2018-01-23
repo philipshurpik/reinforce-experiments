@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.distributions import Categorical
 from collections import namedtuple
-from pytorch.policy_brain import Policy, PolicyBrain
+from pytorch.reinforce import Policy, ReinforceBrain
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 gamma = 0.99
@@ -25,7 +25,7 @@ class PolicyA2C(Policy):
         return F.softmax(action_scores, dim=1), state_values
 
 
-class A2CBrain(PolicyBrain):
+class A2CBrain(ReinforceBrain):
     def __init__(self, seed, n_states, n_actions):
         super(A2CBrain, self).__init__(seed, n_states, n_actions)
 

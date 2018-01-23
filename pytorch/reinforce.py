@@ -28,7 +28,7 @@ class Policy(nn.Module):
         return F.softmax(action_scores, dim=1)
 
 
-class PolicyBrain:
+class ReinforceBrain:
     def __init__(self, seed, n_states, n_actions):
         torch.manual_seed(seed)
         self.model = self.make_model(n_states, n_actions)

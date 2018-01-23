@@ -1,13 +1,13 @@
 import argparse
 import gym
 import numpy as np
-from pytorch.policy_brain import PolicyBrain
-from pytorch.a2c_brain import A2CBrain
+from pytorch.reinforce import ReinforceBrain
+from pytorch.a2c import A2CBrain
 
 parser = argparse.ArgumentParser(description='Policy gradients algorithms examples')
 parser.add_argument('--model',
                     default='a2c',
-                    choices=['policy', 'a2c'],
+                    choices=['reinforce', 'a2c'],
                     help='choice model type - a2c or policy gradient')
 parser.add_argument('--env',
                     default='CartPole',
@@ -35,7 +35,7 @@ render = True
 n_states = env.observation_space.shape[0]
 n_actions = env.action_space.n
 
-MODELS = {'a2c': A2CBrain, 'policy': PolicyBrain}
+MODELS = {'a2c': A2CBrain, 'reinforce': ReinforceBrain}
 brain = MODELS[args.model](seed=SEED, n_states=n_states, n_actions=n_actions)
 
 
