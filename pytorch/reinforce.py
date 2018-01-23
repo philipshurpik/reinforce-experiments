@@ -55,7 +55,6 @@ class ReinforceBrain:
     def finish_episode(self):
         rewards = self.discount_rewards(self.model.rewards)
         rewards = torch.Tensor(rewards)
-        rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
         self.optimizer.zero_grad()
         loss = self.compute_loss(rewards)
         loss.backward()
@@ -69,7 +68,8 @@ class ReinforceBrain:
         for r in model_rewards[::-1]:
             running_add = r + gamma * running_add
             discounted_rewards.insert(0, running_add)
-        return discounted_rewards
+        eps = np.finfo(np.float32).eps
+        return (discounted_rewards - np.mean(discounted_rewards)) / (np.std(discounted_rewards) + eps)
 
     def compute_loss(self, rewards):
         policy_losses = []

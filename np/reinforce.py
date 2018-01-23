@@ -1,9 +1,7 @@
-# Inspired by https://github.com/pytorch/examples/blob/master/reinforcement_learning/reinforce.py
+# Inspired by https://gist.github.com/karpathy/a4166c7fe253700972fcbc77e4ea32c5
 
 import numpy as np
-from collections import namedtuple
 
-SavedAction = namedtuple('SavedAction', ['log_prob'])
 gamma = 0.99
 n_hidden = 128
 learning_rate = 1e-3
@@ -21,7 +19,6 @@ class Policy:
         self.grad_buffer = {k: np.zeros_like(v) for k, v in self.model.items()}
         # rmsprop memory
         self.rmsprop_cache = {k: np.zeros_like(v) for k, v in self.model.items()}
-        self.saved_actions = []
         self.rewards = []
 
     @staticmethod
@@ -35,12 +32,12 @@ class Policy:
         p = Policy.sigmoid(logp)
         return p, h     # return probability of taking action 2, and hidden state
 
-    def backward(self, eph, epdlogp, epx):
-        """ backward pass. (eph is array of intermediate hidden states) """
-        dW2 = np.dot(eph.T, epdlogp)
+    def backward(self, x_cache, h_cache, epdlogp):
+        """ backward pass. (h_cache is array of intermediate hidden states) """
+        dW2 = np.dot(h_cache.T, epdlogp)
         dh = np.outer(epdlogp, self.model['W2'])
-        dh[eph <= 0] = 0  # backpro prelu
-        dW1 = np.dot(dh.T, epx)
+        dh[h_cache <= 0] = 0  # backpro prelu
+        dW1 = np.dot(dh.T, x_cache)
         return {'W1': dW1, 'W2': dW2}
 
 
@@ -48,17 +45,18 @@ class ReinforceBrain:
     def __init__(self, seed, n_states, n_actions):
         np.random.seed(seed)
         self.model = self.make_model(n_states, n_actions)
-        self.xs, self.hs, self.dlogps = [], [], []
+        self.x_cache, self.h_cache, self.dlogps = [], [], []
 
     def make_model(self, n_states, n_actions):
         return Policy(n_states, n_actions)
 
     def select_action(self, state):
         aprob, h = self.model.forward(state)
-        action = 1 if np.random.uniform() < aprob else 0
-        #self.model.saved_actions.append(SavedAction(m.log_prob(action)))
-        self.xs.append(state)  # state
-        self.hs.append(h)  # hidden state
+        probs = [1 - aprob[0][0], aprob[0][0]]
+        action = np.random.choice(2, p=probs)
+
+        self.x_cache.append(state)  # state
+        self.h_cache.append(h)  # hidden state
         self.dlogps.append(action - aprob)  # grad that encourages the action that was taken to be taken
         return action
 
@@ -69,13 +67,12 @@ class ReinforceBrain:
         return np.sum(self.model.rewards)
 
     def finish_episode(self):
-        epx = np.vstack(self.xs)
-        eph = np.vstack(self.hs)
-        epdlogp = np.vstack(self.dlogps)
-        rewards = np.array(self.discount_rewards(self.model.rewards)).reshape(-1, 1)
-        discounted_rewards = (rewards - rewards.mean()) / (rewards.std() + np.finfo(np.float32).eps)
-        epdlogp *= discounted_rewards
-        grad = self.model.backward(eph, epdlogp, epx)
+        x_cache = np.vstack(self.x_cache)
+        h_cache = np.vstack(self.h_cache)
+        discounted_rewards = np.array(self.discount_rewards(self.model.rewards)).reshape(-1, 1)
+        epdlogp = np.vstack(self.dlogps) * discounted_rewards
+
+        grad = self.model.backward(x_cache, h_cache, epdlogp)
         for k in self.model.model:
             self.model.grad_buffer[k] += grad[k]
 
@@ -85,7 +82,7 @@ class ReinforceBrain:
             self.model.model[k] += learning_rate * g / (np.sqrt(self.model.rmsprop_cache[k]) + 1e-5)
             self.model.grad_buffer[k] = np.zeros_like(v)  # reset batch gradient buffer
 
-        self.xs, self.hs, self.dlogps = [], [], []
+        self.x_cache, self.h_cache, self.dlogps = [], [], []
         del self.model.rewards[:]
 
     def discount_rewards(self, model_rewards):
@@ -94,19 +91,5 @@ class ReinforceBrain:
         for r in model_rewards[::-1]:
             running_add = r + gamma * running_add
             discounted_rewards.insert(0, running_add)
-        return discounted_rewards
-
-    # def compute_loss(self, rewards):
-    #     policy_losses = []
-    #     for (log_prob,), reward in zip(self.model.saved_actions, rewards):
-    #         policy_losses.append(-log_prob * reward)
-    #     return torch.cat(policy_losses).sum()
-
-
-
-
-
-
-
-
-
+        eps = np.finfo(np.float32).eps
+        return (discounted_rewards - np.mean(discounted_rewards)) / (np.std(discounted_rewards) + eps)

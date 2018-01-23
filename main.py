@@ -20,7 +20,7 @@ parser.add_argument('--env',
                     help='choice env')
 args = parser.parse_args()
 
-SEED = 42
+SEED = 23
 PRINT_ITERATIONS = 1
 MAX_EPISODES = 100000
 ENVS = {'CartPole': 'CartPole-v0', 'MountainCar': 'MountainCar-v0', 'LunarLander': 'LunarLander-v2'}
