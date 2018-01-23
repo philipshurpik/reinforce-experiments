@@ -6,6 +6,10 @@ from pytorch.a2c import A2CBrain
 from np.reinforce import ReinforceBrain as NPReinforceBrain
 
 parser = argparse.ArgumentParser(description='Policy gradients algorithms examples')
+parser.add_argument('--type',
+                    default='pytorch',
+                    choices=['np', 'pytorch'],
+                    help='choice type - numpy or pytorch')
 parser.add_argument('--model',
                     default='a2c',
                     choices=['reinforce', 'a2c'],
@@ -36,7 +40,9 @@ render = True
 n_states = env.observation_space.shape[0]
 n_actions = env.action_space.n
 
-MODELS = {'a2c': A2CBrain, 'reinforce': NPReinforceBrain}
+TORCH_MODELS = {'a2c': A2CBrain, 'reinforce': ReinforceBrain}
+NUMPY_MODELS = {'a2c': A2CBrain, 'reinforce': NPReinforceBrain}
+MODELS = NUMPY_MODELS if args.type == 'np' else TORCH_MODELS
 brain = MODELS[args.model](seed=SEED, n_states=n_states, n_actions=n_actions)
 
 
