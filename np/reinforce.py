@@ -33,7 +33,7 @@ class Policy:
         a1 = Policy.relu(z1)
         z2 = np.dot(a1, self.model['W2'])
         a_prob = Policy.softmax(z2)
-        return a_prob, a1, z2   # return probability of taking actions, and hidden state
+        return a_prob, a1   # return probability of taking actions, and hidden state
 
     def backward(self, x_cache, a1_cache, dZ2):
         """ backward pass. (a1_cache is array of intermediate hidden states) """
@@ -55,7 +55,7 @@ class ReinforceBrain:
         return Policy(n_states, n_actions)
 
     def select_action(self, state):
-        aprob, a1, z2 = self.model.forward(state)
+        aprob, a1 = self.model.forward(state)
         action = np.random.choice(self.n_actions, p=aprob)
         y = np.zeros_like(aprob)
         y[action] = 1

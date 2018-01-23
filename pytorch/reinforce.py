@@ -12,6 +12,7 @@ from collections import namedtuple
 SavedAction = namedtuple('SavedAction', ['log_prob'])
 n_hidden = 64
 gamma = 0.99
+learning_rate = 1e-2
 
 
 class Policy(nn.Module):
@@ -33,7 +34,7 @@ class ReinforceBrain:
     def __init__(self, seed, n_states, n_actions):
         torch.manual_seed(seed)
         self.model = self.make_model(n_states, n_actions)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-2)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
     def make_model(self, n_states, n_actions):
         return Policy(n_states, n_actions)
