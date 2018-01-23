@@ -46,6 +46,7 @@ class Policy:
 
 class ReinforceBrain:
     def __init__(self, seed, n_states, n_actions):
+        np.random.seed(seed)
         self.model = self.make_model(n_states, n_actions)
         self.xs, self.hs, self.dlogps = [], [], []
 
