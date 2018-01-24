@@ -13,13 +13,15 @@ SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 class PolicyA2C(Policy):
     def __init__(self, n_states, n_actions, n_hidden):
         super(PolicyA2C, self).__init__(n_states, n_actions, n_hidden)
-        self.value_head = nn.Linear(n_hidden, 1)
+        self.V2 = nn.Linear(n_hidden, 1)
 
     def forward(self, x):
-        x = F.relu(self.hidden1(x))
-        action_scores = self.action_head(x)
-        state_values = self.value_head(x)
-        return F.softmax(action_scores, dim=1), state_values
+        z1 = self.W1(x)
+        a1 = F.relu(z1)
+        z2 = self.W2(a1)
+        aprob = F.softmax(z2, dim=1)
+        state_value = self.V2(a1)
+        return aprob, state_value
 
 
 class A2CBrain(ReinforceBrain):
@@ -31,8 +33,8 @@ class A2CBrain(ReinforceBrain):
 
     def select_action(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0)
-        probs, state_value = self.model(Variable(state))
-        m = Categorical(probs)
+        aprob, state_value = self.model(Variable(state))
+        m = Categorical(aprob)
         action = m.sample()
         self.model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
         return action.data[0]

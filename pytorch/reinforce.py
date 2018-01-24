@@ -15,16 +15,16 @@ learning_rate = 3e-3
 class Policy(nn.Module):
     def __init__(self, n_states, n_actions, n_hidden):
         super(Policy, self).__init__()
-        self.hidden1 = nn.Linear(n_states, n_hidden)
-        self.action_head = nn.Linear(n_hidden, n_actions)
-
-        self.saved_actions = []
-        self.rewards = []
+        self.W1 = nn.Linear(n_states, n_hidden)
+        self.W2 = nn.Linear(n_hidden, n_actions)
+        self.rewards, self.saved_actions = [], []
 
     def forward(self, x):
-        x = F.relu(self.hidden1(x))
-        action_scores = self.action_head(x)
-        return F.softmax(action_scores, dim=1)
+        z1 = self.W1(x)
+        a1 = F.relu(z1)
+        z2 = self.W2(a1)
+        aprob = F.softmax(z2, dim=1)
+        return aprob
 
 
 class ReinforceBrain(SharedBrain):
@@ -38,8 +38,8 @@ class ReinforceBrain(SharedBrain):
 
     def select_action(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0)
-        probs = self.model(Variable(state))
-        m = Categorical(probs)
+        aprob = self.model(Variable(state))
+        m = Categorical(aprob)
         action = m.sample()
         self.model.saved_actions.append(SavedAction(m.log_prob(action)))
         return action.data[0]
@@ -51,8 +51,7 @@ class ReinforceBrain(SharedBrain):
         loss = self.compute_loss(rewards)
         loss.backward()
         self.optimizer.step()
-        del self.model.rewards[:]
-        del self.model.saved_actions[:]
+        self.model.rewards, self.model.saved_actions = [], []
 
     def compute_loss(self, rewards):
         policy_losses = []
