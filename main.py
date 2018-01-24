@@ -1,17 +1,17 @@
 import argparse
 import gym
-import numpy as np
 from pytorch.reinforce import ReinforceBrain
 from pytorch.a2c import A2CBrain
 from np.reinforce import ReinforceBrain as NPReinforceBrain
+from tf.reinforce import ReinforceBrain as TFReinforceBrain
 
 parser = argparse.ArgumentParser(description='Policy gradients algorithms examples')
 parser.add_argument('--type',
                     default='pytorch',
-                    choices=['np', 'pytorch'],
-                    help='choice type - numpy or pytorch')
+                    choices=['numpy', 'pytorch', 'tensorflow'],
+                    help='choice type - numpy or pytorch or tensorflow')
 parser.add_argument('--model',
-                    default='a2c',
+                    default='reinforce',
                     choices=['reinforce', 'a2c'],
                     help='choice model type - a2c or policy gradient')
 parser.add_argument('--env',
@@ -41,8 +41,9 @@ n_states = env.observation_space.shape[0]
 n_actions = env.action_space.n
 
 TORCH_MODELS = {'a2c': A2CBrain, 'reinforce': ReinforceBrain}
-NUMPY_MODELS = {'a2c': A2CBrain, 'reinforce': NPReinforceBrain}
-MODELS = NUMPY_MODELS if args.type == 'np' else TORCH_MODELS
+NUMPY_MODELS = {'reinforce': NPReinforceBrain}
+TF_MODELS = {'reinforce': TFReinforceBrain}
+MODELS = NUMPY_MODELS if args.type == 'numpy' else TF_MODELS if args.type == 'tensorflow' else TORCH_MODELS
 brain = MODELS[args.model](seed=SEED, n_states=n_states, n_actions=n_actions)
 
 
