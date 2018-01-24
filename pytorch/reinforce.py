@@ -77,12 +77,3 @@ class ReinforceBrain:
         for (log_prob,), reward in zip(self.model.saved_actions, rewards):
             policy_losses.append(-log_prob * reward)
         return torch.cat(policy_losses).sum()
-
-
-
-
-
-
-
-
-
