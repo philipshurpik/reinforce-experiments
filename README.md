@@ -1,5 +1,6 @@
 # reinforce-experiments
 Simple implementations of vanilla reinforce (policy gradient) and actor critic methods with numpy, pytorch and tensorflow
+
 By default works with CartPole and LunarLander
 
 The main goal was to study algorithms and make how much possible amount of shared code between different implementations - to highlight differences between them 
