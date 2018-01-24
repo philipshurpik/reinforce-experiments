@@ -13,7 +13,7 @@ class Policy:
             'W1': tf.Variable(initializer([n_states, n_hidden]), name="W1"),
             'W2': tf.Variable(initializer([n_hidden, n_actions]), name="W2")
         }
-        self.rewards = []
+        self.rewards, self.x_cache, self.y_cache = [], [], []
 
     def forward(self, x):
         z1 = tf.matmul(x, self.model['W1'])
@@ -30,19 +30,18 @@ class ReinforceBrain:
         self.n_actions = n_actions
         self.model = self.make_model(seed, n_states, n_actions)
         self.tf_x = tf.placeholder(dtype=tf.float32, shape=[None, n_states], name="x_cache")
-        self.tf_dlogprobs = tf.placeholder(dtype=tf.float32, shape=[None, n_actions], name="dlogprobs")
+        self.tf_y = tf.placeholder(dtype=tf.float32, shape=[None, n_actions], name="y_cache")
         self.tf_disc_rewards = tf.placeholder(dtype=tf.float32, shape=[None, 1], name="disc_rewards")
 
         self.policy_forward = self.model.forward(self.tf_x)
 
-        loss = tf.nn.l2_loss(self.tf_dlogprobs - self.policy_forward)
+        loss = tf.nn.l2_loss(self.tf_y - self.policy_forward)
         optimizer = tf.train.AdamOptimizer(learning_rate)
         tf_grads = optimizer.compute_gradients(loss, var_list=tf.trainable_variables(), grad_loss=self.tf_disc_rewards)
         self.train_op = optimizer.apply_gradients(tf_grads)
 
         self.session = tf.InteractiveSession()
-        tf.initialize_all_variables().run()
-        self.x_cache, self.dlogprobs, self.y_cache = [], [], []
+        self.session.run(tf.global_variables_initializer())
 
     def make_model(self, seed, n_states, n_actions):
         return Policy(seed, n_states, n_actions)
@@ -56,9 +55,8 @@ class ReinforceBrain:
         y = np.zeros_like(aprob)
         y[action] = 1
 
-        self.x_cache.append(state)
-        self.y_cache.append(y)
-        self.dlogprobs.append(y - aprob)
+        self.model.x_cache.append(state)
+        self.model.y_cache.append(y)
         return action
 
     def add_step_reward(self, reward):
@@ -68,16 +66,14 @@ class ReinforceBrain:
         return np.sum(self.model.rewards)
 
     def finish_episode(self):
-        x_cache = np.vstack(self.x_cache)
-        y_cache = np.vstack(self.y_cache)
-        dlogprobs = np.vstack(self.dlogprobs)
+        x_cache = np.vstack(self.model.x_cache)
+        y_cache = np.vstack(self.model.y_cache)
         discounted_rewards = np.array(self.discount_rewards(self.model.rewards)).reshape(-1, 1)
 
-        feed = {self.tf_x: x_cache, self.tf_dlogprobs: y_cache, self.tf_disc_rewards: discounted_rewards}
+        feed = {self.tf_x: x_cache, self.tf_y: y_cache, self.tf_disc_rewards: discounted_rewards}
         _ = self.session.run(self.train_op, feed)
 
-        self.x_cache, self.dlogprobs, self.y_cache = [], [], []
-        del self.model.rewards[:]
+        self.model.x_cache, self.model.y_cache, self.model.rewards = [], [], []
 
     def discount_rewards(self, model_rewards):
         running_add = 0
