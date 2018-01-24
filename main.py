@@ -20,7 +20,7 @@ parser.add_argument('--env',
                     help='choice env')
 args = parser.parse_args()
 
-SEED = 23
+SEED = 42
 PRINT_ITERATIONS = 1
 MAX_EPISODES = 100000
 ENVS = {'CartPole': 'CartPole-v0', 'MountainCar': 'MountainCar-v0', 'LunarLander': 'LunarLander-v2'}
@@ -39,12 +39,13 @@ env.seed(SEED)
 render = True
 n_states = env.observation_space.shape[0]
 n_actions = env.action_space.n
+n_hidden = 64
 
 TORCH_MODELS = {'a2c': A2CBrain, 'reinforce': ReinforceBrain}
 NUMPY_MODELS = {'reinforce': NPReinforceBrain}
 TF_MODELS = {'reinforce': TFReinforceBrain}
 MODELS = NUMPY_MODELS if args.type == 'numpy' else TF_MODELS if args.type == 'tensorflow' else TORCH_MODELS
-brain = MODELS[args.model](seed=SEED, n_states=n_states, n_actions=n_actions)
+brain = MODELS[args.model](seed=SEED, n_states=n_states, n_actions=n_actions, n_hidden=n_hidden)
 
 
 def main():

@@ -1,15 +1,13 @@
 # Inspired by https://gist.github.com/karpathy/a4166c7fe253700972fcbc77e4ea32c5
-
 import numpy as np
+from shared_brain import SharedBrain
 
-gamma = 0.99
-n_hidden = 64
 learning_rate = 3e-3
 decay_rate = 0.99
 
 
 class Policy:
-    def __init__(self, n_states, n_actions):
+    def __init__(self, n_states, n_actions, n_hidden):
         self.model = {
             'W1': np.random.randn(n_states, n_hidden) / np.sqrt(n_states),
             'W2': np.random.randn(n_hidden, n_actions) / np.sqrt(n_actions)
@@ -44,14 +42,12 @@ class Policy:
         return {'W1': dW1, 'W2': dW2}
 
 
-class ReinforceBrain:
-    def __init__(self, seed, n_states, n_actions):
-        np.random.seed(seed)
-        self.model = self.make_model(n_states, n_actions)
-        self.n_actions = n_actions
+class ReinforceBrain(SharedBrain):
+    def __init__(self, seed, n_states, n_actions, n_hidden):
+        super(ReinforceBrain, self).__init__(seed, n_states, n_actions, n_hidden)
 
-    def make_model(self, n_states, n_actions):
-        return Policy(n_states, n_actions)
+    def make_model(self, seed, n_states, n_actions, n_hidden):
+        return Policy(n_states, n_actions, n_hidden)
 
     def select_action(self, state):
         aprob, a1 = self.model.forward(state)
@@ -63,12 +59,6 @@ class ReinforceBrain:
         self.model.a1_cache.append(a1)  # hidden state
         self.model.dlogprobs.append(y - aprob)  # grad that encourages the action that was taken to be taken
         return action
-
-    def add_step_reward(self, reward):
-        self.model.rewards.append(reward)
-
-    def get_rewards_sum(self):
-        return np.sum(self.model.rewards)
 
     def finish_episode(self):
         x_cache = np.vstack(self.model.x_cache)
@@ -87,12 +77,3 @@ class ReinforceBrain:
             self.model.grad_buffer[k] = np.zeros_like(v)  # reset batch gradient buffer
 
         self.model.rewards, self.model.x_cache, self.model.a1_cache, self.model.dlogprobs = [], [], [], []
-
-    def discount_rewards(self, model_rewards):
-        running_add = 0
-        discounted_rewards = []
-        for r in model_rewards[::-1]:
-            running_add = r + gamma * running_add
-            discounted_rewards.insert(0, running_add)
-        eps = np.finfo(np.float32).eps
-        return (discounted_rewards - np.mean(discounted_rewards)) / (np.std(discounted_rewards) + eps)

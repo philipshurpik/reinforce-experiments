@@ -1,6 +1,4 @@
 # Inspired by https://github.com/pytorch/examples/blob/master/reinforcement_learning/reinforce.py
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,13 +8,11 @@ from collections import namedtuple
 from pytorch.reinforce import Policy, ReinforceBrain
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
-n_hidden = 128
-gamma = 0.99
 
 
 class PolicyA2C(Policy):
-    def __init__(self, n_states, n_actions):
-        super(PolicyA2C, self).__init__(n_states, n_actions)
+    def __init__(self, n_states, n_actions, n_hidden):
+        super(PolicyA2C, self).__init__(n_states, n_actions, n_hidden)
         self.value_head = nn.Linear(n_hidden, 1)
 
     def forward(self, x):
@@ -27,11 +23,11 @@ class PolicyA2C(Policy):
 
 
 class A2CBrain(ReinforceBrain):
-    def __init__(self, seed, n_states, n_actions):
-        super(A2CBrain, self).__init__(seed, n_states, n_actions)
+    def __init__(self, seed, n_states, n_actions, n_hidden):
+        super(A2CBrain, self).__init__(seed, n_states, n_actions, n_hidden)
 
-    def make_model(self, n_states, n_actions):
-        return PolicyA2C(n_states, n_actions)
+    def make_model(self, seed, n_states, n_actions, n_hidden):
+        return PolicyA2C(n_states, n_actions, n_hidden)
 
     def select_action(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0)
