@@ -18,7 +18,7 @@ class Policy:
         self.grad_buffer = {k: np.zeros_like(v) for k, v in self.model.items()}
         # rmsprop memory
         self.rmsprop_cache = {k: np.zeros_like(v) for k, v in self.model.items()}
-        self.rewards = []
+        self.rewards, self.x_cache, self.a1_cache, self.dlogprobs = [], [], [], []
 
     @staticmethod
     def softmax(x):
@@ -49,7 +49,6 @@ class ReinforceBrain:
         np.random.seed(seed)
         self.model = self.make_model(n_states, n_actions)
         self.n_actions = n_actions
-        self.x_cache, self.a1_cache, self.dlogprobs = [], [], []
 
     def make_model(self, n_states, n_actions):
         return Policy(n_states, n_actions)
@@ -60,9 +59,9 @@ class ReinforceBrain:
         y = np.zeros_like(aprob)
         y[action] = 1
 
-        self.x_cache.append(state)  # state
-        self.a1_cache.append(a1)  # hidden state
-        self.dlogprobs.append(y - aprob)  # grad that encourages the action that was taken to be taken
+        self.model.x_cache.append(state)  # state
+        self.model.a1_cache.append(a1)  # hidden state
+        self.model.dlogprobs.append(y - aprob)  # grad that encourages the action that was taken to be taken
         return action
 
     def add_step_reward(self, reward):
@@ -72,10 +71,10 @@ class ReinforceBrain:
         return np.sum(self.model.rewards)
 
     def finish_episode(self):
-        x_cache = np.vstack(self.x_cache)
-        a1_cache = np.vstack(self.a1_cache)
+        x_cache = np.vstack(self.model.x_cache)
+        a1_cache = np.vstack(self.model.a1_cache)
         discounted_rewards = np.array(self.discount_rewards(self.model.rewards)).reshape(-1, 1)
-        dlogprobs_advantage = np.vstack(self.dlogprobs) * discounted_rewards
+        dlogprobs_advantage = np.vstack(self.model.dlogprobs) * discounted_rewards
 
         grad = self.model.backward(x_cache, a1_cache, dlogprobs_advantage)
         for k in self.model.model:
@@ -87,8 +86,7 @@ class ReinforceBrain:
             self.model.model[k] += learning_rate * g / (np.sqrt(self.model.rmsprop_cache[k]) + 1e-5)
             self.model.grad_buffer[k] = np.zeros_like(v)  # reset batch gradient buffer
 
-        self.x_cache, self.a1_cache, self.dlogprobs = [], [], []
-        del self.model.rewards[:]
+        self.model.rewards, self.model.x_cache, self.model.a1_cache, self.model.dlogprobs = [], [], [], []
 
     def discount_rewards(self, model_rewards):
         running_add = 0
