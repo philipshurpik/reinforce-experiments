@@ -11,7 +11,7 @@ decay_rate = 0.99
 class Policy:
     def __init__(self, n_states, n_actions):
         self.model = {
-            'W1': np.random.randn(n_hidden, n_states) / np.sqrt(n_states),
+            'W1': np.random.randn(n_states, n_hidden) / np.sqrt(n_states),
             'W2': np.random.randn(n_hidden, n_actions) / np.sqrt(n_actions)
         }
         # update buffers that add up gradients over a batch
@@ -29,7 +29,7 @@ class Policy:
     def relu(z): return np.maximum(0, z)
 
     def forward(self, x):
-        z1 = np.dot(self.model['W1'], x)
+        z1 = np.dot(x, self.model['W1'])
         a1 = Policy.relu(z1)
         z2 = np.dot(a1, self.model['W2'])
         a_prob = Policy.softmax(z2)
@@ -40,7 +40,7 @@ class Policy:
         dW2 = np.dot(a1_cache.T, dZ2)
         dZ1 = np.dot(self.model['W2'], dZ2.T)
         dZ1[a1_cache.T <= 0] = 0
-        dW1 = np.dot(dZ1, x_cache)
+        dW1 = np.dot(x_cache.T, dZ1.T)
         return {'W1': dW1, 'W2': dW2}
 
 
