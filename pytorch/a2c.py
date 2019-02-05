@@ -6,6 +6,7 @@ from torch.autograd import Variable
 from torch.distributions import Categorical
 from collections import namedtuple
 from pytorch.reinforce import Policy, ReinforceBrain
+import numpy as np
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
@@ -37,7 +38,7 @@ class A2CBrain(ReinforceBrain):
         m = Categorical(aprob)
         action = m.sample()
         self.model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
-        return action.data[0]
+        return action.data[0].numpy()
 
     def compute_loss(self, rewards):
         policy_losses = []
@@ -45,8 +46,8 @@ class A2CBrain(ReinforceBrain):
         for (log_prob, value), r in zip(self.model.saved_actions, rewards):
             reward = r - value.data[0, 0]
             policy_losses.append(-log_prob * reward)
-            value_losses.append(F.smooth_l1_loss(value, Variable(torch.Tensor([r]))))
-        return torch.cat(policy_losses).sum() + torch.cat(value_losses).sum()
+            value_losses.append(F.smooth_l1_loss(value, Variable(torch.Tensor([r])).unsqueeze(0)).unsqueeze(0))
+        return torch.cat(policy_losses,0).sum() + torch.cat(value_losses,0).sum()
 
 
 
